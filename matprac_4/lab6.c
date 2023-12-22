@@ -1,697 +1,414 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <time.h>
-#include <stdbool.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
+#include "ctype.h"
 
-#define MAX_LEN_FILENAME 10
-#define MIN_LEN_FILENAME 5
-#define FOR_TXT 5
+#define SIZE 20
 
-typedef enum statements
+enum errors
 {
-    correct,
-    allocate_error,
-    invalid_input,
-    invalid_file,
-    runtime_error,
-    invalid_brackets,
-    invalid_arguments,
-    invalid_operator
-} statements;
+    OK,
+    INVALID_INPUT,
+    INVALID_MEMORY,
+    ERROR_OPEN_FILE,
+    DIVISION_BY_ZERO,
+    EMPTY_LINE,
+    EMPTY_BRACKET,
+    INVALID_BRACKET,
+    NEGATIVE_MOD,
+    NEGATIVE_POWER,
+    UNUSED_DIGITS_OR_OPERATORS
+};
 
-typedef struct Stack_node
-{
-    char data;
-    struct Stack_node *next;
-} Stack_node;
-
-typedef struct
-{
-    Stack_node *top;
-} Stack;
-
-void create_stack(Stack *s)
-{
-    s->top = NULL;
-}
-
-int is_empty_stack(Stack *s)
-{
-    return s->top == NULL;
-}
-
-statements push_back_stack(Stack *s, char item)
-{
-    Stack_node *new_stack_node = (Stack_node *)malloc(sizeof(Stack_node));
-    if (new_stack_node == NULL)
-    {
-        return allocate_error;
-    }
-
-    new_stack_node->data = item;
-    new_stack_node->next = s->top;
-    s->top = new_stack_node;
-    return correct;
-}
-
-char pop_stack(Stack *s)
-{
-    if (!is_empty_stack(s))
-    {
-        Stack_node *temp = s->top;
-        char data = temp->data;
-        s->top = temp->next;
-        free(temp);
-        return data;
-    }
-    return -1;
-}
-
-void clear_stack(Stack *s)
-{
-    while (!is_empty_stack(s))
-    {
-        pop_stack(s);
-    }
-}
-
-typedef struct Node
-{
-    char data;
+typedef struct Node {
+    char value;
     struct Node *left;
     struct Node *right;
 } Node;
 
-Node *create_node(char data)
+typedef struct Stack_char
 {
-    Node *new_node = (Node *)malloc(sizeof(Node));
-    if (new_node == NULL)
+    char value;
+    struct Stack_char * next;
+} Stack_char;
+
+typedef struct Stack_node
+{
+    Node* value;
+    struct Stack_node * next;
+} Stack_node;
+
+
+enum errors Stack_char_push(Stack_char ** head, char data)
+{
+    Stack_char * tmp = (Stack_char*) malloc(sizeof(Stack_char));
+    if(tmp == NULL)
     {
-        return NULL;
+        return INVALID_MEMORY;
+    }
+    tmp->value = data;
+    tmp->next = (*head);
+    (*head) = tmp;
+    return OK;
+}
+
+enum errors Stack_char_pop(Stack_char ** head, char * num)
+{
+    Stack_char* prev = NULL;
+    if (head == NULL || *head == NULL)
+    {
+        return INVALID_INPUT;
     }
 
-    new_node->data = data;
-    new_node->left = NULL;
-    new_node->right = NULL;
+    prev = (*head);
+    *num = prev->value;
+    (*head) = (*head)->next;
 
-    return new_node;
+    free(prev);
+    return OK;
 }
 
-void free_node(Node *node)
+void Stack_char_free(Stack_char * head)
 {
-    node->left = node->right = NULL;
-    free(node);
-    node = NULL;
+    Stack_char * tmp = NULL;
+    while (head)
+    {
+        tmp = head;
+        head = head->next;
+        free(tmp);
+    }
 }
 
-void free_tree(Node *root)
+enum errors Stack_node_push(Stack_node ** head, Node* data)
+{
+    Stack_node * tmp = (Stack_node*) malloc(sizeof(Stack_node));
+    if(tmp == NULL)
+    {
+        return INVALID_MEMORY;
+    }
+    tmp->value = data;
+    tmp->next = *head;
+    *head = tmp;
+    return OK;
+}
+
+enum errors Stack_node_pop(Stack_node ** head, Node** num)
+{
+    Stack_node* prev = NULL;
+    if (head == NULL || *head == NULL)
+    {
+        return INVALID_INPUT;
+    }
+
+    prev = (*head);
+    *num = prev->value;
+    (*head) = (*head)->next;
+
+    free(prev);
+    return OK;
+}
+
+int is_operator(const char symbol)
+{
+    return ((symbol == '(') || (symbol == ')') || (symbol == '~') ||
+            (symbol == '?') || (symbol == '!') || (symbol == '+') ||
+            (symbol == '&') || (symbol == '|') || (symbol == '-') ||
+            (symbol == '<') || (symbol == '='));
+}
+
+int precedence(char c)
+{
+    switch (c)
+    {
+        case '~':
+            return 3;
+        case '?':
+        case '!':
+        case '+':
+        case '&':
+            return 2;
+        case '|':
+        case '-':
+        case '<':
+        case '=':
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+enum errors infix_to_postfix(const char *infix, char **postfix)
+{
+    Stack_char *Stack_char = NULL;
+    int idx = 0;
+
+    char c;
+    char temp;
+    int len = strlen(infix);
+    for (int i = 0; i < len; ++i)
+    {
+        c = infix[i];
+
+        if (isdigit(c) || isalpha(c))
+        {
+            (*postfix)[idx++] = c;
+        }
+        else if (c == '(')
+        {
+            if (i < len - 1 && infix[i + 1] == ')')
+                return EMPTY_BRACKET;
+            Stack_char_push(&Stack_char, c);
+        }
+        else if (c == ')')
+        {
+            while (Stack_char != NULL && Stack_char->value != '(')
+            {
+                (*postfix)[idx++] = Stack_char->value;
+                Stack_char_pop(&Stack_char, &temp);
+            }
+
+            if (Stack_char != NULL && Stack_char->value == '(')
+                Stack_char_pop(&Stack_char, &temp);
+            else
+                return INVALID_BRACKET;
+        }
+        else if (is_operator(c))
+        {
+            while (Stack_char != NULL && precedence(c) <= precedence(Stack_char->value))
+            {
+                (*postfix)[idx++] = Stack_char->value;
+                Stack_char_pop(&Stack_char, &temp);
+            }
+            Stack_char_push(&Stack_char, c);
+            if(c == '-' || c == '+' || c == '<') i++;
+        }
+        else
+        {
+            return INVALID_INPUT;
+        }
+    }
+
+    while (Stack_char != NULL && Stack_char->value != '(')
+    {
+        (*postfix)[idx++] = Stack_char->value;
+        Stack_char_pop(&Stack_char, &temp);
+    }
+
+    if (Stack_char != NULL)
+    {
+        while(Stack_char != NULL)
+            Stack_char_pop(&Stack_char, &temp);
+        return INVALID_BRACKET;
+    }
+
+    (*postfix)[idx] = '\0';
+
+    return OK;
+}
+
+enum errors read_string(FILE * input, char ** infix, int * capacity_infix)
+{
+    int idx = 0;
+    char c = fgetc(input);
+
+    if(c == EOF)
+    {
+        (*infix)[idx] = '\0';
+        return EMPTY_LINE;
+    }
+
+    while(c != EOF)
+    {
+        if(idx + 1 >= *capacity_infix)
+        {
+            (*capacity_infix) *= 2;
+            char * for_realloc = (char *) realloc(*infix, *capacity_infix);
+            if(for_realloc == NULL) return INVALID_MEMORY;
+            *infix = for_realloc;
+        }
+        (*infix)[idx++] = c;
+        c = fgetc(input);
+        if(c == '\n') return INVALID_INPUT;
+    }
+
+    (*infix)[idx] = '\0';
+
+    return OK;
+}
+
+void print_error(FILE * output, enum errors err, int count_line)
+{
+    switch (err)
+    {
+        case INVALID_INPUT:
+            fprintf(output, "№%d: invalid operand\n", count_line);
+            break;
+        case DIVISION_BY_ZERO:
+            fprintf(output, "№%d: division by zero\n", count_line);
+            break;
+        case EMPTY_LINE:
+            fprintf(output, "№%d: empty line\n", count_line);
+            break;
+        case EMPTY_BRACKET:
+            fprintf(output, "№%d: empty bracket\n", count_line);
+            break;
+        case INVALID_BRACKET:
+            fprintf(output, "№%d: invalid bracket\n", count_line);
+            break;
+        case NEGATIVE_MOD:
+            fprintf(output, "№%d: negative mod\n", count_line);
+            break;
+        case NEGATIVE_POWER:
+            fprintf(output, "№%d: negative power\n", count_line);
+            break;
+        case UNUSED_DIGITS_OR_OPERATORS:
+            fprintf(output, "№%d: unused operand or operation\n", count_line);
+            break;
+        default:
+            fprintf(output, "№%d: ????\n", count_line);
+            break;
+    }
+}
+
+Node* create_node(char value)
+{
+    Node* node = (Node*) malloc(sizeof(Node));
+    if(node == NULL) return NULL;
+    node->value = value;
+    node->left = NULL;
+    node->right = NULL;
+    return node;
+}
+
+Node* build_tree(const char* postfix)
+{
+    Stack_node* stack = NULL;
+    for (int i = 0; postfix[i] != '\0'; i++)
+    {
+        if (isdigit(postfix[i]) || isalpha(postfix[i]))
+        {
+            Node* node = create_node(postfix[i]);
+            Stack_node_push(&stack, node);
+        }
+        else if (is_operator(postfix[i]))
+        {
+            Node* node = create_node(postfix[i]);
+
+            Node* right = NULL;
+            Stack_node_pop(&stack, &right);
+            node->right = right;
+
+            Node* left = NULL;
+            Stack_node_pop(&stack, &left);
+            node->left = left;
+
+            Stack_node_push(&stack, node);
+        }
+    }
+
+    Node * node;
+    Stack_node_pop(&stack, &node);
+
+
+    return node;
+}
+
+void inorder(Node* root, int depth)
 {
     if (root == NULL)
+    {
         return;
-    free_tree(root->left);
-    free_tree(root->right);
-    free_node(root);
-}
-
-typedef struct Node_to_stack
-{
-    Node *data;
-    struct Node_to_stack *next;
-} Node_to_stack;
-
-typedef struct
-{
-    Node_to_stack *top;
-} Node_stack;
-
-void node_stack_init(Node_stack *s)
-{
-    s->top = NULL;
-}
-
-int is_node_stack_empty(Node_stack *s)
-{
-    return s->top == NULL;
-}
-
-statements push_node(Node_stack *s, Node *item)
-{
-    Node_to_stack *new_stack_node = (Node_to_stack *)malloc(sizeof(Node_to_stack));
-    if (new_stack_node == NULL)
-    {
-        return allocate_error;
     }
-
-    new_stack_node->data = item;
-    new_stack_node->next = s->top;
-    s->top = new_stack_node;
-    return correct;
+    inorder(root->left, depth + 1);
+    for (int i = 0; i < depth * 3; i++) {
+        printf(" ");
+    }
+    printf("\\_%c\n", root->value);
+    inorder(root->right, depth + 1);
 }
 
-Node *pop_node(Node_stack *s)
-{
-    if (!is_node_stack_empty(s))
+Node * delete_tree(Node* root) {
+    if (root)
     {
-        Node_to_stack *temp = s->top;
-        Node *data = temp->data;
-        s->top = temp->next;
-        free(temp);
-        return data;
+        delete_tree(root->left);
+        delete_tree(root->right);
+        free(root);
     }
     return NULL;
 }
 
-void clear_node_stack(Node_stack *s)
+int main(int argc, char * argv[])
 {
-    while (!is_node_stack_empty(s))
+    if(argc == 1)
     {
-        pop_node(s);
+        printf("Usage: %s file1.txt file2.txt ...\n", argv[0]);
+        return INVALID_INPUT;
     }
-}
 
-bool is_operator(char data)
-{
-    char *operators = "&|~-+<=!?>";
-    int i = 0;
-    while (*operators != '\0')
+    FILE * input = NULL;
+    int capacity_infix = SIZE;
+    char * infix = (char *) malloc(sizeof(char) * capacity_infix);
+    if(infix == NULL)
     {
-        if (*operators == data)
+        printf("memory allocation error\n");
+        return INVALID_MEMORY;
+    }
+
+    enum errors err;
+    for (int i = 1; i < argc; ++i)
+    {
+        input = fopen(argv[i], "r");
+        if(input == NULL)
         {
-            return true;
-        }
-        operators++;
-    }
-    return false;
-}
-
-// печатаем переменные
-void print_var(FILE *file, const char *variables, int count)
-{
-    for (int i = 0; i < count; i++)
-    {
-        fprintf(file, " %c |", variables[i]);
-    }
-}
-
-// печатаем выражение из дерева, в ификсной форме
-void print_infix(FILE *file, Node *root)
-{
-    if (root == NULL)
-        return;
-
-    if (is_operator(root->data))
-    {
-        fprintf(file, "(");
-    }
-
-    print_infix(file, root->left);
-    fprintf(file, "%c", root->data);
-
-    if (root->data == '-' || root->data == '+' || root->data == '<')
-    {
-        fprintf(file, ">");
-    }
-
-    print_infix(file, root->right);
-
-    if (is_operator(root->data))
-    {
-        fprintf(file, ")");
-    }
-}
-
-// вывод заголовка таблицы
-void print_header(FILE *file, const char *variables, int count, Node *root)
-{
-    print_var(file, variables, count);
-    fprintf(file, " ");
-
-    print_infix(file, root);
-    fprintf(file, "\n");
-}
-
-// приоритет операций
-int priority(char data)
-{
-    switch (data)
-    {
-    case '~':
-        return 3;
-    case '?':
-    case '!':
-    case '+':
-    case '&':
-        return 2;
-    case '|':
-    case '-':
-    case '<':
-    case '=':
-        return 1;
-    default:
-        return -1;
-    }
-}
-
-// двухсимвольный ли оператор
-bool is_two_char_operator(char op1, char op2)
-{
-    char *two_ops[3] = {"->", "<>", "+>"};
-    for (int i = 0; i < 3; i++)
-    {
-        if (op1 == two_ops[i][0] && op2 == two_ops[i][1])
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool not_in_array(char *mas, int l, char symbol)
-{
-    for (int i = 0; i < l; i++)
-    {
-        if (mas[i] == symbol)
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-// считаем уникальные переменные
-int cnt_unique_lets(char **mas, char *infix)
-{
-    int length = 0;
-    char *temp;
-    int len = strlen(infix);
-    for (int i = 0; i < len; i++)
-    {
-        if (isalpha(infix[i]) && not_in_array(*mas, length, infix[i]))
-        {
-            length++;
-            temp = (char *)realloc(*mas, length * sizeof(char));
-            if (temp == NULL)
-            {
-                if (*mas != NULL)
-                {
-                    free(*mas);
-                }
-                free(infix);
-                return allocate_error;
-            }
-            *mas = temp;
-            (*mas)[length - 1] = infix[i];
-        }
-    }
-    return length;
-}
-
-// псевдослучайное имя
-char *generate_filename()
-{
-    srand(time(NULL));
-
-    int len = rand() % (MAX_LEN_FILENAME - MIN_LEN_FILENAME + 1) + MIN_LEN_FILENAME;
-
-    char *file = (char *)malloc((len + FOR_TXT + 1) * sizeof(char));
-    for (int i = 0; i <= len;)
-    {
-        file[i] = rand() % ('Z' - '0' + 1) + '0';
-        if (isalpha(file[i]) || isdigit(file[i]))
-        {
-            i++;
-        }
-    }
-    strcat(file, ".txt");
-    return file;
-}
-
-// считаем выражение по дереву, со значяениями переменных values
-int solution_from_tree(Node *root, const char *variables, const int *values, const int count)
-{
-    if (root == NULL)
-        return -1;
-
-    int left = solution_from_tree(root->left, variables, values, count);
-    int right = solution_from_tree(root->right, variables, values, count);
-
-    if (isalpha(root->data))
-    {
-        for (int i = 0; i < count; i++)
-        {
-            if (root->data == variables[i])
-            {
-                return values[i];
-            }
-        }
-    }
-
-    if (root->data == '0' || root->data == '1')
-        return root->data - '0';
-
-    if (root->data == '&')
-    {
-        return left & right;
-    }
-    if (root->data == '|')
-    {
-        return left | right;
-    }
-    if (root->data == '~')
-    {
-        return ~left;
-    }
-    if (root->data == '-')
-    {
-        return left <= right;
-    }
-    if (root->data == '+')
-    {
-        return ~(~left | right);
-    }
-    if (root->data == '<')
-    {
-        return left != right;
-    }
-    if (root->data == '=')
-    {
-        return left == right;
-    }
-    if (root->data == '!')
-    {
-        return ~(left & right);
-    }
-    if (root->data == '?')
-    {
-        return ~(left | right);
-    }
-
-    return -1;
-}
-
-// построение таблицы истинности
-statements build_table(Node *root, const int count, const char *mas, char **out_path)
-{
-    char *output_file = generate_filename();
-    FILE *file = fopen(output_file, "w");
-    if (file == NULL)
-    {
-        free(output_file);
-        return invalid_file;
-    }
-    Node *current = root;
-
-    print_header(file, mas, count, root);
-
-    int num_combinations = 1 << count;
-    int means[count], result;
-
-    for (int i = 0; i < num_combinations; i++)
-    {
-        for (int j = 0; j < count; j++)
-        {
-            int bit = (i >> j) & 1;
-            fprintf(file, " %d |", bit);
-            means[j] = bit;
-        }
-        // результат при таких значениях переменных
-        result = solution_from_tree(root, mas, means, count);
-        
-        if (result == -1)
-        {
-            fclose(file);
-            free(output_file);
-            return invalid_arguments;
-        }
-        fprintf(file, " %d\n", result);
-    }
-    fclose(file);
-    *out_path = output_file;
-    return correct;
-}
-
-// перевод инфиксной в постфиксную
-statements infix_to_postfix(char **old_n, const char *new_n, int *leng)
-{
-    Stack stack;
-    create_stack(&stack);
-
-    int infix_len = strlen(new_n);
-    char *resulting = (char *)malloc((2 * infix_len + 1) * sizeof(char));
-    if (resulting == NULL)
-    {
-        return allocate_error;
-    }
-
-    int str_i = 0;
-    int counter = 0;
-
-    while (str_i < infix_len)
-    {
-        char symb = new_n[str_i];
-
-        if (isspace(symb))
-        {
-            str_i++;
+            printf("Error opening file %s\n", argv[i]);
             continue;
         }
 
-        if (isalnum(symb))
-        {
-            if (isdigit(symb) && symb != '0' && symb != '1')
-            {
-                free(resulting);
-                clear_stack(&stack);
-                return invalid_arguments;
-            }
-            resulting[counter++] = symb;
-        }
-        else if (symb == '(')
-        {
-            if (push_back_stack(&stack, symb) != correct)
-            {
-                free(resulting);
-                clear_stack(&stack);
-                return allocate_error;
-            }
-        }
-        else if (symb == ')')
-        {
-            while (!is_empty_stack(&stack) && stack.top->data != '(')
-            {
-                resulting[counter++] = pop_stack(&stack);
-            }
-            pop_stack(&stack); // Удаляем '(' из стека
-        }
-        else
-        {
-            // Обработка двухсимвольных операторов
-            if (!is_empty_stack(&stack) && priority(stack.top->data) >= priority(symb) &&
-                stack.top->data != '(' && is_two_char_operator(stack.top->data, new_n[str_i + 1]))
-            {
-                resulting[counter++] = pop_stack(&stack);
-            }
-            if (push_back_stack(&stack, symb) != correct)
-            {
-                free(resulting);
-                clear_stack(&stack);
-                return allocate_error;
-            }
+        printf("file: %s\n", argv[i]);
 
-            if (is_two_char_operator(symb, new_n[str_i + 1]))
-            {
-                str_i++;
-            }
+        err = read_string(input, &infix, &capacity_infix);
+
+        if(err == INVALID_MEMORY)
+        {
+            printf("memory allocation error\n");
+            fclose(input);
+            free(infix);
+            return INVALID_MEMORY;
+        }
+        else if(err != OK)
+        {
+//            print_error(err_output, err, count_line);
+            continue;
         }
 
-        str_i++;
-    }
-
-    while (!is_empty_stack(&stack))
-    {
-        resulting[counter++] = pop_stack(&stack);
-    }
-
-    resulting[counter] = '\0';
-    *old_n = resulting;
-    *leng = counter;
-
-    clear_stack(&stack);
-
-    return correct;
-}
-
-statements build_tree(Node **tree, char *input)
-{
-    char *postfix = NULL;
-    int length = 0;
-
-    statements result = infix_to_postfix(&postfix, input, &length);
-    if (result != correct)
-        return result;
-
-    Node_stack stack;
-    node_stack_init(&stack);
-    int index = 0;
-    while (postfix[index] != '\0')
-    {
-
-        char symbol = postfix[index];
-        if (isalnum(symbol) || symbol == '0' || symbol == '1')
+        char * postfix = (char *) malloc(sizeof(char) * ( 3 * strlen(infix) + 1));
+        if(postfix == NULL)
         {
-            Node *node = create_node(symbol);
-            if (node == NULL || push_node(&stack, node) != correct)
-            {
-                clear_node_stack(&stack);
-                free(postfix);
-                return allocate_error;
-            }
+            fclose(input);
+            free(infix);
+            return INVALID_MEMORY;
         }
-        else
+
+        err = infix_to_postfix(infix, &postfix);
+        if(err != OK)
         {
-            Node *new_node = NULL;
-            if (is_two_char_operator(symbol, postfix[index + 1]))
-            {
-                char two_char_operator[3] = {symbol, postfix[index + 1], '\0'};
-                index++;
-                new_node = create_node(two_char_operator[0]);
-            }
-            else
-                new_node = create_node(symbol);
-
-            Node *right_node = pop_node(&stack);
-            Node *left_node = pop_node(&stack);
-
-            new_node->left = left_node;
-            new_node->right = right_node;
-            if (push_node(&stack, new_node) != correct)
-            {
-                clear_node_stack(&stack);
-                free(postfix);
-                return allocate_error;
-            }
+            free(postfix);
+            printf("!!");
+            continue;
         }
-        index++;
+
+        printf("%s %s\n", infix, postfix);
+
+        Node * root = build_tree(postfix);
+
+        inorder(root, 0);
+
+
+        free(postfix);
     }
 
-    *tree = pop_node(&stack);
-    clear_node_stack(&stack);
-    free(postfix);
-
-    return correct;
-}
-
-statements run(char *input_file, char **output_file)
-{
-    FILE *file = fopen(input_file, "r");
-    if (file == NULL)
-    {
-        return invalid_file;
-    }
-
-    char *line = NULL;
-
-    size_t bufsize = 0;
-    size_t len = getline(&line, &bufsize, file);
-
-    if (len < 1 || !feof(file))
-    {
-        free(line);
-        fclose(file);
-        return invalid_file;
-    }
-    fclose(file);
-
-    
-    Node *root = NULL;
-
-    statements state = build_tree(&root, line);
-    if (state != correct)
-    {
-        free(line);
-        return state;
-    }
-
-    char *variables = NULL;
-    int count = cnt_unique_lets(&variables, line);
-
-    free(line);
-
-    if (count < 0)
-    {
-        free_tree(root);
-        return allocate_error;
-    }
-
-    state = build_table(root, count, variables, output_file);
-    free(variables);
-    free_tree(root);
-
-    return state;
-}
-
-void exit_state(statements state)
-{
-    if (state == correct)
-    {
-        printf("Success\n");
-    }
-    else if (state == allocate_error)
-    {
-        printf("Error: Memory allocation failure\n");
-    }
-    else if (state == invalid_input)
-    {
-        printf("Error: Wrong input\n");
-    }
-    else if (state == invalid_file)
-    {
-        printf("Error: File error\n");
-    }
-    else if (state == runtime_error)
-    {
-        printf("Error: Runtime error\n");
-    }
-    else if (state == invalid_brackets)
-    {
-        printf("Error: Wrong number of brackets\n");
-    }
-    else if (state == invalid_arguments)
-    {
-        printf("Error: Wrong arguments\n");
-    }
-    else if (state == invalid_operator)
-    {
-        printf("Error: Wrong operator\n");
-    }
-    else
-    {
-        printf("Unknown state\n");
-    }
-}
-
-int main(int argc, char *argv[])
-{
-    if (argc != 2)
-    {
-        printf("Usage: %s <input_file>", argv[0]);
-        return 1;
-    }
-
-    char *out = NULL;
-    statements result = run(argv[1], &out);
-    if (result == correct)
-    {
-        printf("Check file %s\n", out);
-    }
-    printf("Exit code : %d\n", result); 
-    exit_state(result);
-    if (out != NULL)
-    {
-        free(out);
-    }
-
-    return result;
+    free(infix);
+    return 0;
 }
