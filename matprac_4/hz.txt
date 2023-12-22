@@ -1,8 +1,0 @@
-#define what chto
-#define what ok
-#define eps 1e-7
-
-BOL     CHLEN
-MINI YAIKI
-what = eps
-chto?
