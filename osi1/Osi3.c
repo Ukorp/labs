@@ -29,17 +29,17 @@ int main(int argc, char * argv[]){
         printf("Файлы одинаковые\n");
         return FILE_ERROR;
     }
-    if ((file1 = fopen(argv[1], "r")) == 0){
+    if ((file1 = fopen(argv[1], "rb")) == 0){
         printf("Ошибка открытия файла\n");
         return FILE_ERROR;
     }
-    if ((file2 = fopen(argv[2], "w+")) == 0){
+    if ((file2 = fopen(argv[2], "wb")) == 0){
         printf("Ошибка открытия файла\n");
         fclose(file1);
         return FILE_ERROR;
     }
-    while((tmp = fgetc(file1)) != EOF){
-        fputc(tmp, file2);
+    while(fread(&tmp, 1, 1, file1) != 0){
+        fwrite(&tmp, 1, 1, file2);
     }
     printf("Выполнено\n");
     fclose(file1);

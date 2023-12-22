@@ -21,29 +21,43 @@ flags define_flag(char * str){
 char solve_xor8(FILE * file){
     char result = 0;
     char tmp;
-    while ((tmp = getc(file)) != EOF){
+    while (fread(&tmp, 1, 1, file)){
         result ^= tmp;
     }
     
     return result;
 }
 
-char solve_xor32(FILE * file){
+int solve_xor32(FILE * file){
     char result = 0;
-    char byte = 1;
+    char byte = 0;
     int ans = 0;
-    while (byte != EOF){
+    int k = 1;
+    while (k != 0){
         int tmp = 0;
         for (int i = 0; i < 4; ++i){
-            byte = fgetc(file);
-            
+            k = fread(&byte, 1, 1, file);
             tmp = tmp << 8;
-            if (byte != EOF){
+            if (k != 0)
                 tmp |= byte;
-            }
         }
-        printf("%d\n", tmp);
         ans ^= tmp;
+    }
+    
+    return ans;
+}
+
+char solve_xor32_test(FILE * file){
+    char result = 0;
+    char byte[4] = {0, 0, 0, 0};
+    int ans = 0;
+    while (fread(byte, 1, 4, file)){
+        int tmp = 0;
+        ans ^= *(int *)byte;
+        byte[0] = 0;
+        byte[1] = 0;
+        byte[2] = 0;
+        byte[3] = 0;
     }
     
     return ans;
@@ -60,7 +74,7 @@ int solve_mask (FILE * file, char * hex, errors * status_code){
     }
     char * endptr;
     int hex_mask = strtol(hex, &endptr, 16);
-    if ((*endptr != '\0') || (strlen(hex) == 0)){
+    if ((*endptr != '\0') || (strlen(hex) == 0) || (strlen(hex) > 8)){
         *status_code = FAIL;
         return FAIL;
     }
@@ -68,12 +82,13 @@ int solve_mask (FILE * file, char * hex, errors * status_code){
     char result = 0;
     char byte = 1;
     int ans = 0;
-    while (byte != EOF){
+    int k = 1;
+    while (k != 0){
         int tmp = 0;
         for (int i = 0; i < 4; ++i){
-            byte = fgetc(file);
+            k = fread(&byte, 1, 1, file);
             tmp = tmp << 8;
-            if (byte != EOF){
+            if (k != 0){
                 tmp |= byte;
             }
         }
@@ -83,7 +98,36 @@ int solve_mask (FILE * file, char * hex, errors * status_code){
     return ans;
 }
 
+int solve_mask_test(FILE * file, char * hex, errors * status_code){
+    if (hex == NULL){
+        *status_code = FAIL;
+        return FAIL;
+    }
+    if (file == NULL){
+        *status_code = FAIL;
+        return FAIL;
+    }
+    char * endptr;
+    int hex_mask = strtol(hex, &endptr, 16);
+    if ((*endptr != '\0') || (strlen(hex) == 0)){
+        *status_code = FAIL;
+        return FAIL;
+    }
 
+    char result = 0;
+    char byte[4] = {0, 0, 0, 0};
+    int ans = 0;
+    while (fread(byte, 1, 4, file)){
+        int tmp = *(int*)byte;
+        if (tmp == hex_mask) ans++;
+        byte[0] = 0;
+        byte[1] = 0;
+        byte[2] = 0;
+        byte[3] = 0;
+    }
+    *status_code = OK;
+    return ans;
+}
 
 int main(int argc, char * argv[]){
     FILE * file1;
@@ -117,6 +161,5 @@ int main(int argc, char * argv[]){
             else puts("ОШИБКААА");
             break;
     }
-    printf("%d", result);
     fseek(file1, 0,SEEK_SET);
 }

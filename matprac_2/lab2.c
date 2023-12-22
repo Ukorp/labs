@@ -29,20 +29,15 @@ double geometric_mean(double eps, errors * errors_detection, int num, ...){
     return pow(ans, 1.0 / num);
 }
 
-double power(double a, int n){
-    int step = (n > 0) ? 1 : -1;
-    n = abs(n);
-    double mult = a;
-    double result = 1;
-    while (n != 0){
-        if (n % 2 == 1){
-            result *= mult;
-        }
-        mult *= mult;
-        n /= 2;
-    }
-    if (step == -1) return (1 / result);
-    return result;
+double binpow (double a, int n) {
+	if (n == 0)
+		return 1;
+	if (n % 2 == 1)
+		return binpow (a, n-1) * a;
+	else {
+		int b = binpow (a, n/2);
+		return b * b;
+	}
 }
 
 int main(){
@@ -58,7 +53,7 @@ int main(){
             return argument_error;
         case ok:
             printf("%f\n", ans);
-            printf("%f\n", power(2, 2));
+            printf("%f\n", binpow(2, 4));
             return ok;
         default:
             printf("Неизвестная ошибка\n");

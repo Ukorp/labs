@@ -76,7 +76,7 @@ int equalStrings(String str1, String str2){
 
 errors copyString(String * from, String * to){
     to->size = from->size;
-    free(to->data);
+    // free(to->data);
     to->data = strdup(from->data);
     if (to->data == NULL) return fail;
     return ok;
@@ -246,6 +246,7 @@ errors fillAdress(Adress * adress){
     }
     copyString(&city, &adress->city);
     free_string(&city);
+
 
     printf("Введите улицу почтового отделения: ");
     fgets(container, 1024, stdin);
@@ -439,10 +440,8 @@ errors free_mail(Mail * mail){
 errors delete_mail(Post * post, String id){
     Mail * mail = find_mail(post, id);
     if (mail == NULL) return fail;
-    else {
-        free_mail(mail);
-        free(mail);
-    }
+    free_mail(mail);
+    free(mail);
     qsort(post->mail, post->size, sizeof(Mail), (int (*) (const void *, const void *)) comp);
     post->size--;
 }
@@ -513,7 +512,7 @@ void delete_post(Post * post, errors * adress_code){
     if (*adress_code == ok)
         free_adress(post->adress);
     free(post->adress);
-    for (int i = 0; i < post->size; ++i){
+    for (int i = 0; i <= post->size; ++i){
         Mail * tmp = &post->mail[i];
         free_mail(tmp);
         free(tmp);

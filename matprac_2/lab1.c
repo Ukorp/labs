@@ -128,7 +128,7 @@ int shuffle(int * arr, int argc, unsigned long long un){
 
 int main(int argc, char * argv[])
 {
-    if (argc < 2) {
+    if (argc < 3) {
         printf("Флаг отсутствует\n");
         return argument_error;
     }

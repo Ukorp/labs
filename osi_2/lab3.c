@@ -4,7 +4,7 @@
 #include <semaphore.h>
 #include <unistd.h>
 
-#define NUM_PHILOSOPHERS 5
+#define NUM_PHILOSOPHERS 4
 
 sem_t forks[NUM_PHILOSOPHERS];
 sem_t mutex;
@@ -14,10 +14,10 @@ void *philosopher(void *arg) {
     int left_fork = id;
     int right_fork = (id + 1) % NUM_PHILOSOPHERS;
 
-    while (1) {
+    
         // Think
         printf("Philosopher %d is thinking\n", id);
-        sleep(rand() % 5);
+        sleep(rand() % 3);
 
         // Pick up forks
         sem_wait(&mutex);
@@ -27,12 +27,13 @@ void *philosopher(void *arg) {
 
         // Eat
         printf("Philosopher %d is eating\n", id);
-        sleep(rand() % 5);
+        sleep(rand() % 3);
 
         // Put down forks
+        printf("Philosopher %d put forks\n", id);
         sem_post(&forks[left_fork]);
         sem_post(&forks[right_fork]);
-    }
+    
 }
 
 int main() {

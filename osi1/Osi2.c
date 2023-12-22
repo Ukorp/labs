@@ -14,7 +14,8 @@ typedef struct{
 typedef enum autorization{
     ok, login_fail, password_fail, wrong_password,
     login_already_used, no_user, wrong_int,
-    memory_allocation_problem, input_fail
+    memory_allocation_problem, input_fail,
+    bad_login, length_error
 }autorization;
 
 typedef enum commands{
@@ -44,11 +45,25 @@ autorization is_int(char * str){
     return ok;
 }
 
+autorization is_true_login(char * str){
+    if ((str == NULL) || (strlen(str) > 6)) return bad_login;
+    while (*str){
+        if (((*str >= 'A') && (*str <= 'Z')) || ((*str >= 'a') && (*str <= 'z')) || ((*str >= '0') && (*str <= '9'))){
+            str++;
+            continue;
+        }
+        else return bad_login;
+    }
+    return ok;
+}
+
 autorization registration(char * login, int pin, user * base, int * number){
     user tmp;
     tmp.logged = 0;
     tmp.sanctions = 200;
     tmp.uses = 0;
+    if (strlen(login) > 6) return length_error;
+    if (is_true_login(login) != ok) return bad_login;
     for (int i = 0; i < *number; i++){
         if (strcmp(base[i].login, login) == 0) return login_already_used;
     }
@@ -220,7 +235,13 @@ int main() {
                             printf("Логин уже используется\n");
                             break;
                         case password_fail:
-                            printf("Неверные символы в пароле\n");
+                            printf("Неверные символы в пароле/неверная длина пароля\n");
+                            break;
+                        case bad_login:
+                            printf("В логине используются недопустимые символы\n");
+                            break;
+                        case length_error:
+                            printf("Превышено максимальное число символов логина\n");
                             break;
                         case ok:
                             printf("Пользователь успешно зарегистрирован!\n");
