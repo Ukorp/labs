@@ -140,8 +140,6 @@ int main(int argc, char * argv[]){
     char buff[1024];
     int i = 1;
     pair ** ans;
-    FILE * file;
-    file = fopen("hz.txt", "r");
     errors status_code = ok;
     char substr[150] = "sda";
     switch (file_substring(&ans, substr, argc-1, argv[1], argv[2])){
