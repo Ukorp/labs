@@ -15,7 +15,10 @@ int main(int argc, char *argv[]) {
     FILE *file;
     char buffer[11];
     int i;
-
+    if (argc != 2){
+        puts("Неверное число аргументов");
+        return open_file_error;
+    }
     if (!(file = fopen(argv[1], "wb"))){
         printf("Open file error\n");
         return open_file_error;
