@@ -111,18 +111,31 @@ long long do_work(FILE * in, FILE * out, int  * overflow_detection){
         return memory_allocation_problem;
     }
     long long i = 0;
-    ptr = getc(in);
+    ptr = '!';
+    char * tmp;
     while (ptr  != EOF){
+        if (ptr < '!' && ptr != EOF){
+            while(ptr < '!' && ptr != EOF){
+                ptr = getc(in);
+            }
+        }
+        else ptr = getc(in);
         if ((ptr < '0' || ptr > '9') && (ptr < 'A' || ptr > 'Z') && (ptr < 'a' || ptr > 'z') && (ptr >= '!')){
+            free(str);
             return wrong_argument_quantity;
         }
         if ((ptr >= '0' && ptr <= '9') || (ptr >= 'A' && ptr <= 'Z') || (ptr >= 'a' && ptr <= 'z')){
             if (ptr >= 'a' && ptr <= 'z') ptr = ptr - 'a' + 'A'; 
             if ((i + 1) > size ){
                 size++;
-                str = (char *)realloc(str, sizeof(char) * size);
+                tmp = (char *)realloc(str, sizeof(char) * size);
+                if (tmp == NULL){
+                free(str);
+                return memory_allocation_problem;
             }
-            if (str == NULL) return memory_allocation_problem;
+            str = tmp;
+            }
+
             str[i] = ptr;
             if (ptr > max) max = ptr;
             i++;
@@ -131,23 +144,23 @@ long long do_work(FILE * in, FILE * out, int  * overflow_detection){
             str[i] = 0;
             fprintf(out, "%lld ", Nto10(str, (max_to_int(max) + 1), overflow_detection));
             if (*overflow_detection == overflow){
+                free(str);
                 return overflow;
             }
             i = 0;
             max = '!';
         }
-        if (ptr < '!' && ptr != EOF){
-            while(ptr < '!' && ptr != EOF){
-                ptr = getc(in);
-            }
+
+        if (ptr == EOF) {
+            free(str);
+            return ok;
         }
-        else ptr = getc(in);
-        if (ptr == EOF) return ok;
         
 
     }
-    return ok;
     free(str);
+    return ok;
+    
 }
 
 long main(long long argc, char * argv[]){
@@ -157,6 +170,7 @@ long main(long long argc, char * argv[]){
     if ((file1 = fopen(argv[1], "r")) && (file2 = fopen(argv[2], "w+"))){
         if (do_work(file1, file2, &a) != ok){
             printf("Неправильно поданы данные\n");
+            fcloseall();
             return wrong_arguments;
         }
         else printf("Выполнено\n");

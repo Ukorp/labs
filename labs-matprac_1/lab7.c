@@ -2,6 +2,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
+#include <linux/limits.h>
 #include <limits.h>
 #include <locale.h>
 
@@ -173,6 +174,9 @@ int main(int argc, char * argv[]){
         printf("Ошибка\n");
         return wrong_argument_quantity;
     }
+    char path1[PATH_MAX];
+    char path2[PATH_MAX];
+    char path3[PATH_MAX];
     FILE * file1;
     FILE * file2;
     FILE * file3;
@@ -183,7 +187,20 @@ int main(int argc, char * argv[]){
                 printf("Неправильно поданы аргументы\n");
                 return wrong_argument_quantity;
             }
-            if (!(file1 = fopen(argv[2], "r")) || !(file2 = fopen(argv[3], "r")) || !(file3 = fopen(argv[4], "w+"))){
+            if (realpath(argv[2], path1) == NULL){
+                printf("Ошибка открытия файла\n");
+                return file_error;
+            }
+            if (realpath(argv[3], path2) == NULL){
+                printf("Ошибка открытия файла\n");
+                return file_error;
+            }
+            realpath(argv[4], path3);
+            if ((strcmp(path1, path2) == 0) || (strcmp(path1, path3) == 0) || (strcmp(path3, path2) == 0)){
+                printf("Ошибка открытия файла\n");
+                return file_error;
+            }
+            if (!(file1 = fopen(path1, "r")) || !(file2 = fopen(path2, "r")) || !(file3 = fopen(path3, "w+"))){
                 fcloseall();
                 printf("Ошибка открытия файла\n");
                 return file_error;
@@ -195,6 +212,15 @@ int main(int argc, char * argv[]){
             if (argc != 4){
                 printf("Неправильно поданы аргументы\n");
                 return wrong_argument_quantity;
+            }
+            if (realpath(argv[2], path1) == NULL){
+                printf("Ошибка открытия файла\n");
+                return file_error;
+            }
+            realpath(argv[3], path2);
+            if (strcmp(path1, path2) == 0){
+                printf("Ошибка открытия файла\n");
+                return file_error;
             }
             if (!(file1 = fopen(argv[2], "r")) || !(file2 = fopen(argv[3], "w+"))){
                 fcloseall();

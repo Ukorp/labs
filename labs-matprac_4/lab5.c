@@ -194,6 +194,10 @@ char * polish_notation(char * str, errors * status_code){
     int quantity = 0;
     Stack * stack = create_stack();
     char * answer = malloc(sizeof(char) * (1 + strlen(str)));
+    if (answer == NULL){
+        free_stack(stack);
+        return NULL;
+    }
     char var[1 + strlen(str)];
     int num = 0;
     if ((stack == NULL) || (answer == NULL)) {
@@ -441,7 +445,7 @@ void delete_spaces(char * str){
 int main()
 {
     errors status_code = 12321;
-    char str[1024] = "55 + 86 * 34 / (55 % 12)";
+    char str[1024] = "((1)*(1)/(1)/(1)*(1)*(1))*34/((()))";
     
     delete_spaces(str);
     printf("%s\n", str);

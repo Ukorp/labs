@@ -7,13 +7,16 @@
 typedef enum errors{
     ok, not_ok, no_flag, argument_error,
     unknown_error, wrong_int, overflow,
-    memory_allocation_problem, fail
+    memory_allocation_problem, fail,
+    file_open_error
 }errors;
 
 typedef struct pair{
     int index;
     int substr;
 }pair;
+
+int size = 0;
 
 errors sdvig(char * str, char k){
     if (k == EOF) return fail;
@@ -42,6 +45,10 @@ pair * find_substr(FILE * file, char * substr, errors * status_code){
     char k = 1;
     int i = 0;
     pair * result = malloc(sizeof(pair));
+    if (result == NULL){
+        *status_code = memory_allocation_problem;
+        return NULL;
+    }
     for (int j = 0; j < strlen(substr); ++j){
         finding[j] = fgetc(file);
     }
@@ -54,6 +61,7 @@ pair * find_substr(FILE * file, char * substr, errors * status_code){
                 pair * ptr = realloc(result, sizeof(pair) * (i + 1));
                 if (ptr == NULL){
                     free(result);
+                    *status_code = memory_allocation_problem;
                     return NULL;
                 }
                 result = ptr;
@@ -65,6 +73,7 @@ pair * find_substr(FILE * file, char * substr, errors * status_code){
                 pair * ptr = realloc(result, sizeof(pair) * (i + 1));
                 if (ptr == NULL){
                     free(result);
+                    *status_code = memory_allocation_problem;
                     return NULL;
                 }
                 result = ptr;
@@ -80,13 +89,18 @@ pair * find_substr(FILE * file, char * substr, errors * status_code){
     }while (sdvig(finding, k) != fail);
     *status_code = fail;
     result[i].index = -1;
-    if (i == 0) return NULL;
+    if (i == 0){
+        free(result);
+        *status_code = fail;
+        return NULL;
+    }
     return result;
     
 }
 
 errors file_substring(pair *** array, char * str, int argc, ...){
     *array = malloc(sizeof(pair *) + 1);
+    if (*array == NULL) return memory_allocation_problem;
     va_list list;
     pair * answer;
     FILE * file;
@@ -94,13 +108,24 @@ errors file_substring(pair *** array, char * str, int argc, ...){
     va_start(list, argc);
     for(int i = 0; i < argc; ++i){
         file = fopen(va_arg(list, char *), "r+");
+        
+        if (file == NULL){
+            return file_open_error;
+        }
         answer = find_substr(file, str, &status_code);
-        (*array)[i] = answer;
-        pair ** ptr = realloc(*array, sizeof(pair) * (i + 1) + 1);
-        if (ptr == NULL){ 
+
+        if (status_code == memory_allocation_problem){
+            free(*array);
             return memory_allocation_problem;
         }
-        *array = ptr;
+        (*array)[i] = answer;
+        pair ** ptr = realloc(*array, sizeof(pair) * (i + 1) + 1);
+        size++;
+        if (ptr == NULL){ 
+            free(*array);
+            return memory_allocation_problem;
+        }
+        (*array )= ptr;
         fclose(file);
     }
     (*array)[argc] == NULL;
@@ -108,10 +133,11 @@ errors file_substring(pair *** array, char * str, int argc, ...){
 }
 
 void free_pair(int argc, pair ** ans){
+    if (ans == NULL) return;
     for (int i = 0; i < argc; ++i){
         free(ans[i]);
     }
-    free(ans);
+    free(ans); 
 }
 
 void print_result(int argc, char * argv[], pair ** ans){
@@ -147,6 +173,10 @@ int main(int argc, char * argv[]){
             free_pair(argc-1, ans);
             printf("Ошибка выделения памяти\n");
             return memory_allocation_problem;
+        case file_open_error:
+            free_pair(argc-1, ans);
+            printf("Ошибка открытия файла\n");
+            return file_open_error;
         case ok:
             print_result(argc-1, argv, ans);
             free_pair(argc-1, ans);

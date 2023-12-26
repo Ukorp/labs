@@ -66,6 +66,16 @@ enum flags define_flag(char * fl){
 
 int quadric(long double a, long double b, long double c, long double eps, long double * ans_array){
     long double D = b * b - 4 * a * c;
+    if ((a <= eps) && (b <= eps)){
+        ans_array[0] = INT_MAX;
+        ans_array[1] = INT_MAX;
+        return ok;
+    }
+    if ((a <= eps)){
+        ans_array[0] = - (c / b);
+        ans_array[1] = - (c / b);
+        return ok;
+    }
     if (D < 0) return no_x;
     else {
         ans_array[0] = (- 1 * b + sqrt(D)) / (2 * a);
@@ -79,8 +89,12 @@ void print_ans(long double a, long double b, long double c, long double * ans_ar
     printf("%c %Lfx^2 %c %Lfx %c %Lf = 0\n", only_minus(a) ,(long double)fabs(a), plus_minus(b), (long double)fabs(b), plus_minus(c), (long double)fabs(c));
     if(quadric(a, b, c, eps, ans_array) == ok){
             
-        if (fabs(ans_array[0] - ans_array[1]) < eps)
-            printf("Корень уравнения x = %.3Lf\n\n", ans_array[0]);
+        if (fabs(ans_array[0] - ans_array[1]) < eps){
+            if ((INT_MAX - ans_array[0]) <= eps){
+                printf("Уравнение имеет неограниченное количество корней\n\n");
+            }
+            else printf("Корень уравнения x = %.3Lf\n\n", ans_array[0]);
+        }
         else printf("Корни уравнения x1 = %.3Lf, x2 = %.3Lf\n\n", ans_array[0], ans_array[1]);
     }
 
@@ -161,7 +175,7 @@ int main(int argc, char * argv[]){
                 free(ans_array);
                 return wrong_argument_quantity;
             }
-            if ((is_int(argv[2]) && is_int(argv[3])) != ok){
+            if ((is_int(argv[2]) || is_int(argv[3]))){
                 printf("Неверно поданы аргументы\n");
                 free(ans_array);
                 return wrong_int;
@@ -169,6 +183,11 @@ int main(int argc, char * argv[]){
             char * stop;
             long long first = strtoll(argv[2], &stop, 10);
             long long second = strtoll(argv[3], &stop, 10);
+            if (second == 0){
+                printf("Неверно поданы аргументы\n");
+                free(ans_array);
+                return wrong_int;
+            }
             if ((define_overflow_longlong(first) || define_overflow_longlong(second)) != ok){
                 printf("Переполнение\n");
                 free(ans_array);

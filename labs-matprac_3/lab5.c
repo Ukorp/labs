@@ -61,7 +61,7 @@ Student create_student(FILE * in, errors * status_code){
     if (container[strlen(container) - 1] == '\n')
         container[strlen(container) - 1] = ' ';
     char * tmp = strtok(container, " \t");
-    
+
     if (is_usigned_int(tmp) != ok){
         *status_code = fail;
         free(answer.marks);

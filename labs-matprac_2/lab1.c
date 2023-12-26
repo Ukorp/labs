@@ -134,55 +134,67 @@ int main(int argc, char * argv[])
     }
     unsigned long long int un;
     char * end;
-    char ans[len(argv[2])];
+    char * ans = malloc(sizeof(char) * len(argv[2]));
     switch(define_flag(argv[1])){
         case l:
             if (argc < 3) {
                 printf("Строка отсутствует\n");
+                free(ans);
                 return argument_error;
             }
             printf("Размер данной строки: %d символов\n", len(argv[2]));
+            free(ans);
             return ok;
         case r:
             if (argc < 3) {
+                free(ans);
                 printf("Строка отсутствует\n");
                 return argument_error;
             }
             reverse(argv[2]);
             printf("Перевёрнутая строка: %s\n", argv[2]);
+            free(ans);
             return ok;
         case u:
             if (argc < 3) {
                 printf("Строка отсутствует\n");
+                free(ans);
                 return argument_error;
             }
             upper(argv[2]);
             printf("Полученная строка: %s\n", argv[2]);
+            free(ans);
             return ok;
         case n:
             
             if (argc < 3) {
                 printf("Строка отсутствует\n");
+                free(ans);
                 return argument_error;
             }
             if (swap(argv[2], ans) == NULL){
                 printf("Неизвестная ошибка\n");
+                free(ans);
                 return unknown_error;
             };
             printf("Полученная строка: %s\n", ans);
+            free(ans);
             return ok;
         case c:
             if (argc < 3) {
                 printf("Строка отсутствует\n");
+                free(ans);
                 return argument_error;
             }
             if (is_int(argv[2]) != ok){
                 printf("Ошибка аргументов!!!\n");
+                free(ans);
                 return wrong_int;
             }
             un = strtol(argv[2], &end, 10);
             if (un > ULONG_MAX){
                 printf("Переполнение\n");
+                free(ans);
                 return overflow; 
             }
             int * count = create_array(argc);
@@ -190,19 +202,27 @@ int main(int argc, char * argv[])
             if (result == NULL || count == NULL){
                 free(result);
                 free(count);
+                free(ans);
                 puts("Memory allocation problem");
                 return memory_allocation_problem;
             }
             shuffle(count, argc, un);
             for (int i = 0; i < (argc - 3); i++){
-                stradd(result, argv[count[i]]);
+                if (stradd(result, argv[count[i]]) == memory_allocation_problem){
+                    free(count);
+                    free(result);
+                    free(ans);
+                    return memory_allocation_problem;
+                }
             }
             printf("Полученная строка: %s\n", result);
             free(count);
             free(result);
+            free(ans);
             return ok;
         case no_flag:
             printf("Данного флага не существует\n");
+            free(ans);
             return no_flag;
 
     }

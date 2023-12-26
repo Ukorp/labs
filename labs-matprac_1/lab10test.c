@@ -117,7 +117,7 @@ long long this_base(char * str, long long base){
         else if (k >= 'A' && k <= 'Z'){
             if (((k - 'A') + 10) > (base - 1)) return 0;
         }
-        else continue;
+        else return 0;
     }
     return 1;
 }

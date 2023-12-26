@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <linux/limits.h>
 
 
 typedef enum errors{
@@ -58,7 +59,7 @@ void find_s(FILE * in, FILE * out){
     while ((k = getc(in)) != EOF){
         if ((k < '0' || k > '9') && 
         ((k < 'a' || k > 'z') && (k < 'A' || k > 'Z')) &&
-        (k != ' ') && (k != '\n'))
+        (k != ' '))
             count++;
     }
     fprintf(out, "%d", count);
@@ -66,7 +67,7 @@ void find_s(FILE * in, FILE * out){
 
 void find_a(FILE * in, FILE * out){
     char  k;
-    char * str = (char *)malloc(128);
+    char str[250];
     while ((k = getc(in)) != EOF){
         if (k >= '0' && k <= '9') putc(k, out);
         else{
@@ -115,6 +116,8 @@ int main(int argc, char * argv[]){
     }
     FILE * file1;
     FILE * file2;
+    char path1[PATH_MAX];
+    char path2[PATH_MAX];
     char * out = (char *)malloc(sizeof(char) * 128);
     if (out == NULL){
         printf("Ошибка выделения памяти\n");
@@ -130,6 +133,7 @@ int main(int argc, char * argv[]){
                 return wrong_argument_quantity;
             }
             strcat(out, argv[2]);
+
             if (!(file1 = fopen(argv[2], "r")) || !(file2 = fopen(out, "w+"))) {
                 
                 fcloseall();
@@ -196,8 +200,18 @@ int main(int argc, char * argv[]){
                 free(out);
                 return wrong_argument_quantity;
             }
-            if (!(file1 = fopen(argv[2], "r")) || !(file2 = fopen(out, "w+"))) {
-                
+            if (realpath(argv[2], path1) == NULL){
+                printf("Ошибка чтения файла\n");
+                free(out);
+                return wrong_argument_quantity;
+            }
+            realpath(argv[3], path2);
+            if (strcmp(path1, path2) == 0){
+                printf("Ошибка чтения файла\n");
+                free(out);
+                return wrong_argument_quantity;
+            }
+            if (!(file1 = fopen(path1, "r")) || !(file2 = fopen(path2, "w+"))) {
                 fcloseall();
                 free(out);
                 printf("Ошибка чтения файла\n");
@@ -212,8 +226,13 @@ int main(int argc, char * argv[]){
                 free(out);
                 return wrong_argument_quantity;
             }
-            if (!(file1 = fopen(argv[2], "r")) || !(file2 = fopen(out, "w+"))) {
-                
+            if (realpath(argv[2], path1) == NULL){
+                printf("Ошибка чтения файла\n");
+                free(out);
+                return wrong_argument_quantity;
+            }
+            realpath(argv[3], path2);
+            if (!(file1 = fopen(path1, "r")) || !(file2 = fopen(path2, "w+"))) {
                 fcloseall();
                 free(out);
                 printf("Ошибка чтения файла\n");
@@ -228,8 +247,13 @@ int main(int argc, char * argv[]){
                 free(out);
                 return wrong_argument_quantity;
             }
-            if (!(file1 = fopen(argv[2], "r")) || !(file2 = fopen(out, "w+"))) {
-                
+            if (realpath(argv[2], path1) == NULL){
+                printf("Ошибка чтения файла\n");
+                free(out);
+                return wrong_argument_quantity;
+            }
+            realpath(argv[3], path2);
+            if (!(file1 = fopen(path1, "r")) || !(file2 = fopen(path2, "w+"))) {
                 fcloseall();
                 free(out);
                 printf("Ошибка чтения файла\n");
@@ -244,8 +268,13 @@ int main(int argc, char * argv[]){
                 free(out);
                 return wrong_argument_quantity;
             }
-            if (!(file1 = fopen(argv[2], "r")) || !(file2 = fopen(out, "w+"))) {
-                
+            if (realpath(argv[2], path1) == NULL){
+                printf("Ошибка чтения файла\n");
+                free(out);
+                return wrong_argument_quantity;
+            }
+            realpath(argv[3], path2);
+            if (!(file1 = fopen(path1, "r")) || !(file2 = fopen(path2, "w+"))) {
                 fcloseall();
                 free(out);
                 printf("Ошибка чтения файла\n");
@@ -262,4 +291,5 @@ int main(int argc, char * argv[]){
     
     fcloseall();
     free(out);
+    return ok;
 }

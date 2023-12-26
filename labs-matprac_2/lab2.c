@@ -59,7 +59,6 @@ int main(){
             printf("Неизвестная ошибка\n");
             return unknown_error;
     }
-    printf("%f\n", power(2, 2));
     
     
 }

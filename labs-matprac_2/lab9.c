@@ -26,6 +26,6 @@ int has_finite_representation(int base, int count, ...) {
 }
 
 int main() {
-    has_finite_representation(16, 3, 0.7, 0.25, 0.9);
+    has_finite_representation(16, 0, 0.7, 0.25, 0.9);
     return 0;
 }

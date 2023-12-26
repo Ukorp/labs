@@ -134,7 +134,18 @@ int main(int argc, char * argv[]){
     char * stop;
     long double eps = strtold(argv[1], &stop);
     long double x = strtold(argv[2], &stop);
-
+    if (eps <= 0){
+        printf("Неправильно подан аргумент\n");
+        return wrong_arguments;
+    }
+    if (eps < 0.0000000001){
+        printf("Слишком маленький eps\n");
+        return wrong_double;
+    }
+    if (x > 25){
+        printf("Слишком большое значение x\n");
+        return wrong_double;
+    }
     if ((define_overflow_double(eps) || define_overflow_double(x)) != ok){
         printf("Переполнение\n");
         return overflow;
@@ -147,10 +158,26 @@ int main(int argc, char * argv[]){
         printf("Эпсилон должен быть > 0\n");
         return wrong_arguments;
     }
-
-    printf("%Lf\n", find_a(eps, x));
-    printf("%Lf\n", find_b(eps, x));
-    printf("%Lf\n", find_c(eps, x));
-    printf("%Lf\n", find_d(eps, x));
+    long double a, b, c, d;
+    a = find_a(eps, x);
+    b = find_b(eps, x);
+    c = find_c(eps, x);
+    d = find_d(eps, x);
+    if (define_overflow_double(a) != ok){
+        puts("Переполнение");
+    }
+    else printf("%Lf\n", find_a(eps, x));
+    if (define_overflow_double(b) != ok){
+        puts("Переполнение");
+    }
+    else printf("%Lf\n", find_b(eps, x));
+    if (define_overflow_double(c) != ok){
+        puts("Переполнение");
+    }
+    else printf("%Lf\n", find_c(eps, x));
+    if (define_overflow_double(d) != ok){
+        puts("Переполнение");
+    }
+    else printf("%Lf\n", find_d(eps, x));
     return ok;
 }
