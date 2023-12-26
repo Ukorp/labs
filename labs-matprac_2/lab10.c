@@ -29,18 +29,6 @@ double func(int degree, double x, double * array){
     
 }
 
-void dif_test(){
-    // f(x) = x * x;
-    double h = 1e-10;
-    printf("%f\n", ((1 + h) * (1 + h) - 1 * 1) / h);
-}
-
-double diff(int degree, double x, double * array, double(* f) (int, double, double *))
-{
-    const double h = 1e-10;
-    return (f(degree, x + h, array) - f(degree, x, array)) / h;
-}
-
 errors new_polynom(double eps, double a, double ** array, int degree, ...){
     *array = (double *)malloc(sizeof(double) * (degree + 1));
     double * coefficients = (double *)malloc(sizeof(double) * (degree + 1));
@@ -70,7 +58,7 @@ errors new_polynom(double eps, double a, double ** array, int degree, ...){
 int main()
 {
     double * array;
-    new_polynom(0.000000001, 3, &array, 2, 1.0, 2.0, 1.0);
+    new_polynom(0.000000001, 0, &array, 2, 3.0, 2.0, 1.0);
     printf("%f %f %f\n", array[0], array[1], array[2]);
     free(array);
     return 0;

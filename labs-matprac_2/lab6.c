@@ -3,6 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdarg.h>
 #define STR_SIZE 256
 
 typedef enum status_realloc {

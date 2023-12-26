@@ -2,14 +2,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <linux/limits.h>
 #include <limits.h>
 
 typedef enum errors{
     ok, fail, memory_allocation_problem,
     unknown_error, wrong_brackets, wrong_expression,
-    includes_variables, overflow
+    includes_variables, overflow, open_file_error
 
 }errors;
+
+errors define_overflow_longlong(long long a){
+
+    if ((a >= LONG_MAX) || (a <= LONG_MIN)) {
+        return overflow;
+    }
+    else return ok;
+}
 
 typedef struct Node{
     char * value;
@@ -22,6 +31,7 @@ typedef struct operator{
 }operator;
 
 void free_node(Node * ptr){
+    if (ptr == NULL) return;
     free(ptr->value);
     free(ptr);
 }
@@ -43,6 +53,7 @@ typedef struct doubleStack{
 
 errors is_double(char * str){
     int n = 0;
+    if (str == NULL) return fail;
     for (int i = 0; i < strlen(str); i++){
         if ((str[i] == '-') && (i == 0)) continue;
         if ((str[i] == '.') && (n == 0) && (i != 0) && (i != (strlen(str) - 1))) n++;
@@ -69,10 +80,15 @@ doubleStack * create_double_stack(){
 }
 
 errors add_el(Stack * stack, char * val){
+    if (stack == NULL) return fail;
+    if (*val == 0) return fail;
     Node * ptr = malloc(sizeof(Node));
     if (ptr == NULL) return memory_allocation_problem;
     ptr->value = strdup(val);
-    if (ptr->value == NULL) return memory_allocation_problem;
+    if (ptr->value == NULL){
+        free(ptr);
+        return memory_allocation_problem;
+    }
     ptr->next = stack->top;
     stack->top = ptr;
     stack->size++;
@@ -84,6 +100,10 @@ errors add_double(doubleStack * dstack, double val){
     doubleNode * ptr = malloc(sizeof(doubleNode));
     if (ptr == NULL) return memory_allocation_problem;
     ptr->value = val;
+    if (define_overflow_longlong(fabs((long long)val)) != ok){
+        free(ptr);
+        return overflow;
+    }
     ptr->next = dstack->top;
     dstack->top = ptr;
     dstack->size++;
@@ -107,7 +127,7 @@ void pop(Stack * stack){
 
 void pop_double(doubleStack * stack){
     if (stack == NULL) return;
-    if (stack->size == 0) return;
+    if (stack->size <= 0) return;
     doubleNode * ptr = stack->top;
     if (stack->size == 1){
         free(ptr);
@@ -194,10 +214,6 @@ char * polish_notation(char * str, errors * status_code){
     int quantity = 0;
     Stack * stack = create_stack();
     char * answer = malloc(sizeof(char) * (1 + strlen(str)));
-    if (answer == NULL){
-        free_stack(stack);
-        return NULL;
-    }
     char var[1 + strlen(str)];
     int num = 0;
     if ((stack == NULL) || (answer == NULL)) {
@@ -244,6 +260,12 @@ char * polish_notation(char * str, errors * status_code){
                     free_stack(stack);
                     return NULL;
                 }
+                if (*(str-1) == '('){
+                    *status_code = wrong_expression;
+                    free(answer);
+                    free_stack(stack);
+                    return NULL;
+                }
                 while (*(stack->top->value) != '('){
                     answer[i++] = *(stack->top->value);
                     pop(stack);
@@ -254,6 +276,7 @@ char * polish_notation(char * str, errors * status_code){
                         return NULL;
                     }
                 }
+                
                 pop(stack);
             }
             else{ 
@@ -369,10 +392,20 @@ double solving_polish_notation(char * str, errors * status_code){
         if (*str == ','){
 
             array[i] = '\0';
-            if (add_double(stack, atof(array)) == memory_allocation_problem){
-                free_double_stack(stack);
-                *status_code = memory_allocation_problem;
-                return memory_allocation_problem;
+            double test1 = atof(array);
+            switch(add_double(stack, test1)){
+                case memory_allocation_problem:
+                    free_double_stack(stack);
+                    *status_code = memory_allocation_problem;
+                    return memory_allocation_problem;
+                    break;
+                case overflow:
+                    free_double_stack(stack);
+                    *status_code = overflow;
+                    return overflow;
+                    break;
+                case ok:
+                    break;
             }
             i = 0;
         }
@@ -388,26 +421,55 @@ double solving_polish_notation(char * str, errors * status_code){
         else {
             array[i] = '\0';
             if (i != 0){
-                if (add_double(stack, atof(array)) == memory_allocation_problem){
-                    free_double_stack(stack);
-                    *status_code = memory_allocation_problem;
-                    return memory_allocation_problem;
-                }  
+                double test = atof(array);
+                switch(add_double(stack, test)){
+                    case memory_allocation_problem:
+                        free_double_stack(stack);
+                        *status_code = memory_allocation_problem;
+                        return memory_allocation_problem;
+                        break;
+                    case overflow:
+                        free_double_stack(stack);
+                        *status_code = overflow;
+                        return overflow;
+                        break;
+                    case ok:
+                        break;
+                }
             }
             i = 0;
             if (*str == '~'){
                 ans = solving(stack->top->value, 0, *str);
 
                 pop_double(stack);
-                if (add_double(stack, ans) == memory_allocation_problem){
-                    free_double_stack(stack);
-                    *status_code = memory_allocation_problem;
-                    return memory_allocation_problem;
+                switch(add_double(stack, ans)){
+                    case memory_allocation_problem:
+                        free_double_stack(stack);
+                        *status_code = memory_allocation_problem;
+                        return memory_allocation_problem;
+                        break;
+                    case overflow:
+                        free_double_stack(stack);
+                        *status_code = overflow;
+                        return overflow;
+                        break;
+                    case ok:
+                        break;
                 }
  
             }
             else {
+                if ((*str == '/') && (stack->top->value == 0)){
+                    free_double_stack(stack);
+                    *status_code = wrong_expression;
+                    return wrong_expression;
+                }
                 ans = solving(stack->top->next->value, stack->top->value, *str);
+                if (define_overflow_longlong(ans) != ok){
+                    free_double_stack(stack);
+                    *status_code = overflow;
+                    return overflow;
+                }
                 pop_double(stack);
                 pop_double(stack);
                 if (add_double(stack, ans) == memory_allocation_problem){
@@ -442,50 +504,103 @@ void delete_spaces(char * str){
     strcpy(str, array);
 }
 
-int main()
-{
-    errors status_code = 12321;
-    char str[1024] = "((1)*(1)/(1)/(1)*(1)*(1))*34/((()))";
-    
-    delete_spaces(str);
-    printf("%s\n", str);
-    char * ans = polish_notation(str, &status_code);
-    switch(status_code){
-        case ok:
-            printf("%s\n", ans);
-            break;
-        case memory_allocation_problem:
-            puts("Ошибка выделения памяти");
-            break;
-        case wrong_expression:
-            puts("Неверно записано выражение");
-            break;
-        case wrong_brackets:
-            puts("Нарушен баланс скобок");
-            break;
-        case unknown_error:
-            puts("Неизвестная ошибка");
-            break;
-        default:
-            puts("Где-то обосрался (жидко)");
-            break;
-    }
-    double solv = solving_polish_notation(ans, &status_code);
-    switch (status_code){
-        case memory_allocation_problem:
-            puts("Ошибка выделения памяти");
-            break;
-        case includes_variables:
-            puts("Выражение содержит переменные и не может быть вычислено");
-            break;
-        case wrong_expression:
-            puts("Неверно записано выражение (вычисление невозможно)");
-            break;
-        case ok:
-            printf("%f\n", solv);
-            break;
-
-    }
-    free(ans);
-    return ok;
+errors do_task(char * str){
+    char container[1024];
+    char path[PATH_MAX];
+    char out_file[1024] = "errors_";
+    strcat(out_file, str);
+    errors status_code;
+    FILE * file = fopen(str, "r+");
+    if (file == NULL) return open_file_error;
+    FILE * file_out = NULL;
+    realpath(str, path);
+    printf("%s\n", path);
+    int i = 0;
+    while(fgets(container, 1024, file)){
+        if (container[strlen(container) - 1] == '\n')
+            container[strlen(container) - 1] = '\0';
+        delete_spaces(container);
+        char * ans = polish_notation(container, &status_code);
+            switch(status_code){
+                case ok:
+                    break;
+                case memory_allocation_problem:
+                    if (file_out == NULL)
+                        file_out = fopen(out_file, "w+");
+                    if (file_out == NULL) return open_file_error;
+                    fprintf(file_out, "%s %d %s\n", container, i, "Ошибка выделения памяти");
+                    break;
+                case wrong_expression:
+                    if (file_out == NULL)
+                        file_out = fopen(out_file, "w+");
+                    if (file_out == NULL) return open_file_error;
+                    fprintf(file_out, "%s %d %s\n", container, i, "Неправильно записано выражения");
+                    break;
+                case wrong_brackets:
+                    if (file_out == NULL)
+                        file_out = fopen(out_file, "w+");
+                    if (file_out == NULL) return open_file_error;
+                    fprintf(file_out, "%s %d %s\n", container, i, "Ошибка баланса скобок");
+                    break;
+                case unknown_error:
+                    if (file_out == NULL)
+                        file_out = fopen(out_file, "w+");
+                    if (file_out == NULL) return open_file_error;
+                    fprintf(file_out, "%s %d %s\n", container, i, "Неизвестная ошибка");
+                    break;
+                default:
+                    puts("Неизвестная ошибка");
+                    free(ans);
+                    return fail;
+                    break;
+            }
+            if (status_code != ok){
+                free(ans);
+                continue;
+            }
+            double solv = solving_polish_notation(ans, &status_code);
+            switch (status_code){
+                case memory_allocation_problem:
+                    if (file_out == NULL)
+                        file_out = fopen(out_file, "w+");
+                    if (file_out == NULL) return open_file_error;
+                    fprintf(file_out, "%s %d %s\n", container, i, "Ошибка выделения памяти");
+                    break;
+                case includes_variables:
+                    if (file_out == NULL)
+                        file_out = fopen(out_file, "w+");
+                    if (file_out == NULL) return open_file_error;
+                    fprintf(file_out, "%s %d %s\n", container, i, "Выражение содержит переменные");
+                    break;
+                case wrong_expression:
+                    if (file_out == NULL)
+                        file_out = fopen(out_file, "w+");
+                    if (file_out == NULL) return open_file_error;
+                    fprintf(file_out, "%s %d %s\n", container, i, "Нарушен баланс скобок");
+                    break;
+                case overflow:
+                    if (file_out == NULL)
+                        file_out = fopen(out_file, "w+");
+                    if (file_out == NULL) return open_file_error;
+                    fprintf(file_out, "%s %d %s\n", container, i, "Переполнение");
+                    break;
+                case ok:
+                    break;
+            }
+            if (status_code == ok){
+                printf("%s %s %f\n", container, ans, solv);
+            }
+            free(ans);
+        }
+        fclose(file);
+        if (file_out != NULL)
+            fclose(file_out);
+        puts(" ");
 }
+
+int main(int argc, char * argv[])
+{
+    for (int i = 1; i < argc; ++i){
+        do_task(argv[i]);
+    }
+}   

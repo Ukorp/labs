@@ -142,7 +142,10 @@ long long do_work(FILE * in, FILE * out, int  * overflow_detection){
         }
         else{
             str[i] = 0;
-            fprintf(out, "%lld ", Nto10(str, (max_to_int(max) + 1), overflow_detection));
+            char * temp = str;
+            while (*temp == '0') temp++;
+            if (*temp == '\0') temp--;
+            fprintf(out, "%15s%15lld%15lld\n", temp, (max_to_int(max) != 0) ? (max_to_int(max) + 1) : 2, Nto10(str, (max_to_int(max) + 1), overflow_detection));
             if (*overflow_detection == overflow){
                 free(str);
                 return overflow;
@@ -152,7 +155,7 @@ long long do_work(FILE * in, FILE * out, int  * overflow_detection){
         }
 
         if (ptr == EOF) {
-            free(str);
+            // free(str);
             return ok;
         }
         
@@ -166,17 +169,20 @@ long long do_work(FILE * in, FILE * out, int  * overflow_detection){
 long main(long long argc, char * argv[]){
     FILE * file1, * file2;
     int a = 0;
-
-    if ((file1 = fopen(argv[1], "r")) && (file2 = fopen(argv[2], "w+"))){
+    file1 = fopen(argv[1], "r");
+    file2 = fopen(argv[2], "w+");
+    if (file1 && file2){
         if (do_work(file1, file2, &a) != ok){
             printf("Неправильно поданы данные\n");
-            fcloseall();
+            fclose(file1);
+            fclose(file2);
             return wrong_arguments;
         }
         else printf("Выполнено\n");
     }
     else{
-        fcloseall();
+        if (file1 != NULL) fclose(file1);
+        if (file2 != NULL) fclose(file2);
         printf("Входной файл не найден\n");
         return file_error;
     }

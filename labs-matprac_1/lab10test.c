@@ -176,7 +176,7 @@ int main(){
     while (strcmp(str, "Stop") != 0){
         
         if (this_base(str, in) == 0){
-            printf("Число %s не существует в %d системе счисления\n", str, in);
+            printf("Число %s не существует в %Ld системе счисления\n", str, in);
         }
         else{
             delete_0(str);
@@ -209,7 +209,7 @@ int main(){
         free(out);
         return overflow;
     }
-    printf("%s в %d системе счисления = %s в %d системе счисления\n",str, in, out, 9);
+    printf("%s в %Ld системе счисления = %s в %d системе счисления\n",str, in, out, 9);
     if (itobase(Nto10(str, in, &flow), 18, out, &size) == memory_allocation_problem){
         printf("Ошибка выделения памяти\n");
         free(str);
@@ -217,7 +217,7 @@ int main(){
         free(out);
         return memory_allocation_problem;
     };
-    printf("%s в %d системе счисления = %s в %d системе счисления\n",str, in, out, 18);
+    printf("%s в %Ld системе счисления = %s в %d системе счисления\n",str, in, out, 18);
     if (itobase(Nto10(str, in, &flow), 27, out, &size) == memory_allocation_problem){
         printf("Ошибка выделения памяти\n");
         free(str);
@@ -225,7 +225,7 @@ int main(){
         free(out);
         return memory_allocation_problem;
     };
-    printf("%s в %d системе счисления = %s в %d системе счисления\n",str, in, out, 27);
+    printf("%s в %Ld системе счисления = %s в %d системе счисления\n",str, in, out, 27);
     if (itobase(Nto10(str, in, &flow), 36, out, &size) == memory_allocation_problem){
         printf("Ошибка выделения памяти\n");
         free(str);
@@ -233,7 +233,7 @@ int main(){
         free(out);
         return memory_allocation_problem;
     };
-    printf("%s в %d системе счисления = %s в %d системе счисления\n\n",str, in, out, 36);
+    printf("%s в %Ld системе счисления = %s в %d системе счисления\n\n",str, in, out, 36);
     count++;
     free(str);
     free(ans);

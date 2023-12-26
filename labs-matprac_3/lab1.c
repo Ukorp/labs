@@ -4,8 +4,17 @@
 #include <limits.h>
 
 typedef enum errors{
-    ok, memory_allocation_problem, overflow
+    ok, memory_allocation_problem, overflow,
+    unknown_error, numeral_system_error
 }errors;
+
+errors define_overflow_int(int a){
+
+    if ((a >= INT_MAX) || (a <= INT_MIN)) {
+        return overflow;
+    }
+    else return ok;
+}
 
 void reverse(char * str){
     int size = strlen(str);
@@ -18,7 +27,8 @@ void reverse(char * str){
 }
 
 errors ten_to_r(int number, int r, char ** str){
-    if (number > INT_MAX) return overflow;
+    if (number < 0) return overflow;
+    if ((r < 1) || (r > 5)) return numeral_system_error;
     int i = 0;
     char * ptr;
     int tmp = 1;
@@ -28,7 +38,7 @@ errors ten_to_r(int number, int r, char ** str){
         tmp |= 1;
     }
     while (number > 0){
-        ptr = (char *)realloc(str, sizeof(char) * (i + 1) );
+        ptr = (char *)realloc(*str, sizeof(char) * (i + 1) );
         if (ptr == NULL) return memory_allocation_problem;
         *str = ptr;
         (*str)[i++] = alphabet[(number & tmp)];
@@ -43,7 +53,11 @@ errors ten_to_r(int number, int r, char ** str){
 int main()
 {
     char * str = (char *)malloc(sizeof(char));
-    switch(ten_to_r(147, 5, &str)){
+    if (str == NULL){
+        puts("Ошибка выделения памяти\n");
+        return memory_allocation_problem;
+    }
+    switch(ten_to_r(12321313213213123213213213132133, 1, &str)){
         case overflow:
             printf("Переполнение\n");
             free(str);
@@ -53,13 +67,18 @@ int main()
             free(str);
             return overflow;
         case ok:
-            printf("%s\n", str);
+            printf("ok %s\n", str);
+            free(str);
+            return ok;
+        case numeral_system_error:
+            printf("Неверная система счисления\n");
             free(str);
             return ok;
         default:
-            
-    };
-
+            printf("Неизвестная ошибка\n");
+            free(str);
+            return unknown_error;
+    }
     free(str);
-    return 0;
+    return unknown_error;
 }

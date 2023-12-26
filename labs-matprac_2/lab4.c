@@ -1,13 +1,26 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
+#include <limits.h>
 
-
+typedef enum errors{
+    ok, not_ok, no_flag, argument_error,
+    unknown_error, wrong_int, overflow,
+    memory_allocation_problem
+}errors;
 
 typedef struct {
     double x;
     double y;
 } Cord;
+
+errors define_overflow_longlong(long long a){
+
+    if ((a >= LLONG_MAX) || (a <= LLONG_MIN)) {
+        return overflow;
+    }
+    else return ok;
+}
 
 int isConvex(int num, ...) {
     va_list args;
@@ -71,12 +84,16 @@ int main() {
 
     int isConvexPolygon = isConvex(5, p1, p2, p3, p4, p5);
     printf("Is convex polygon: %d\n", isConvexPolygon);
-    double x = 2.0;
+    double x = 5.0;
     double coefficient0 = 1.0;
     double coefficient1 = 2.0;
     double coefficient2 = 3.0;
 
     double result = evaluatePolynomial(x, 2, coefficient2, coefficient1, coefficient0);
+    if (define_overflow_longlong((long long)result) != ok){
+        printf("Overflow\n");
+        return overflow;
+    }
     printf("Result: %f\n", result);
     return 0;
 }

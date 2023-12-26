@@ -11,6 +11,14 @@ typedef enum errors{
     memory_allocation_problem
 }errors;
 
+errors define_overflow_longlong(long long a){
+
+    if ((a >= LLONG_MAX) || (a <= LLONG_MIN)) {
+        return overflow;
+    }
+    else return ok;
+}
+
 double geometric_mean(double eps, errors * errors_detection, int num, ...){
     double ans = 1;
     va_list ptr;
@@ -19,7 +27,7 @@ double geometric_mean(double eps, errors * errors_detection, int num, ...){
     for(int i = 0; i < num; i++){
         tmp = va_arg(ptr, double);
         ans *= tmp;
-        if (fabs(ans - DBL_MAX) < eps){
+        if ((long long)ans - LONG_MAX > eps){
             *errors_detection = overflow;
             return not_ok;
         }
@@ -32,10 +40,14 @@ double geometric_mean(double eps, errors * errors_detection, int num, ...){
 double binpow (double a, int n) {
 	if (n == 0)
 		return 1;
-	if (n % 2 == 1)
+	if (n % 2 == 1){
+        double ans = binpow (a, n-1) * a;
+        if (ans > LONG_MAX) return (double)INT_MAX-2;
 		return binpow (a, n-1) * a;
+    }
 	else {
-		int b = binpow (a, n/2);
+		double b = binpow (a, n/2);
+        if (b*b > LONG_MAX) return (double)INT_MAX-2;
 		return b * b;
 	}
 }
@@ -53,7 +65,14 @@ int main(){
             return argument_error;
         case ok:
             printf("%f\n", ans);
-            printf("%f\n", binpow(2, 4));
+            double power = binpow(2, 100);
+            if ((int)power == INT_MAX - 2){
+                puts("Переполнение");
+                return overflow;
+            }
+            else {
+                printf("%f\n", power);
+            }
             return ok;
         default:
             printf("Неизвестная ошибка\n");

@@ -7,7 +7,7 @@
 
 typedef enum errors{
     ok, overflow, memory_allocation_problem, data_error,
-    arguments_error, file_open_error
+    arguments_error, file_open_error, fail
 
 }errors;
 
@@ -83,6 +83,7 @@ errors make_name(Employee * array, char * str){
     if (is_name(str) == data_error){
         return data_error;
     }
+    if (array == NULL) return fail;
     array->name = (char *)malloc(sizeof(char) * strlen(str));
     if (array->name == NULL) return memory_allocation_problem; 
     strcpy(array->name, str);
@@ -92,6 +93,7 @@ errors make_surname(Employee * array, char * str){
     if (is_name(str) == data_error){
         return data_error;
     }
+    if (array == NULL) return fail;
     array->surname = (char *)malloc(sizeof(char) * strlen(str));
     if (array->surname == NULL) return memory_allocation_problem;
     strcpy(array->surname, str);
@@ -111,6 +113,7 @@ errors line_to_string(char * str, Employee * array){
     int size = strlen(str);
     int counter = 0;
     char * tmp = (char *)malloc(sizeof(char) * size);
+    if (tmp == NULL) return memory_allocation_problem;
     int j = 0;
     array->id = -1;
     array->salary = -1;

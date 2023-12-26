@@ -98,6 +98,10 @@ String newCopyString(String * from){
     String new;
     new.size = from->size;
     new.data = (char *)malloc(sizeof(char) * (new.size + 1));
+    if (new.data == NULL){ 
+        new.size = -1;
+        return new;
+    }
     strcpy(new.data, from->data);
     return new;
 }
@@ -406,6 +410,7 @@ errors fillMail(Mail * mail){
     mail->create = time_now;
 
     mail->took_time = create_string("Не получено");
+    if (mail->took_time.data == NULL) return fail;
 
     return ok;
 
@@ -482,6 +487,7 @@ errors takeMail(Mail * mail){
         if (difftime(Time, mail->create) > 60*60*24*7){
             free_string(&mail->took_time);
             mail->took_time = create_string("Просрочено");
+            if (mail->took_time.data == NULL) return memory_allocation_problem;
             return overdue;
         }
         else {
@@ -489,6 +495,7 @@ errors takeMail(Mail * mail){
             char time_string[20];
             snprintf(time_string, 20, "%02d:%02d:%04d %02d:%02d:%02d", date->tm_mday, date->tm_mon + 1, date->tm_year + 1900, date->tm_hour, date->tm_min, date->tm_sec);
             mail->took_time = create_string(time_string);
+            if (mail->took_time.data == NULL) return memory_allocation_problem;
             return ok;
         }
     }
@@ -526,6 +533,7 @@ int main(){
     errors adress_code = no_adress;
     int size;
     Post * post = create_post(1);
+    if (post == NULL) return memory_allocation_problem;
     Mail * tmp_mail;
     int i = 0;
     int num;
@@ -591,6 +599,9 @@ int main(){
                 case already_took:
                     puts("Посылка уже получена");
                     break;
+                case memory_allocation_problem:
+                    puts("Ошибка выделения памяти");
+                    break; 
             }
             break;
         case 4:

@@ -207,7 +207,7 @@ void print_students(Student * students, int size, FILE * file){
     }
 }
 
-void fill_array(FILE * file, Student ** students_list, int * size){
+errors fill_array(FILE * file, Student ** students_list, int * size){
     errors status_code = ok;
     while (feof(file) == 0){
         (*students_list)[(*size)++] = create_student(file, &status_code);
@@ -217,6 +217,10 @@ void fill_array(FILE * file, Student ** students_list, int * size){
         }
         Student * ptr = (Student *)realloc(*students_list, sizeof(Student) * (*size + 1));
         if (ptr != NULL) *students_list = ptr;
+        else{ 
+            free(*students_list);
+            return memory_allocation_problem;
+        }
     }
 }
 
@@ -290,13 +294,26 @@ int main(int argc, char * argv[]){
     }
     out = fopen(argv[2], "w+");
     if (out == NULL){
+        fclose(in);
         puts("Ошибка открытия файла\n");
         return fail;
     }
     errors status_code = ok;
     int size = 0;
     Student * students_list = (Student *)malloc(sizeof(Student));
-    fill_array(in, &students_list, &size);
+    if (students_list == NULL){
+        fclose(in);
+        fclose(out);
+        puts("Ошибка выделения памяти");
+        return memory_allocation_problem;
+    }
+    if (fill_array(in, &students_list, &size) == memory_allocation_problem){
+        free(students_list);
+        fclose(in);
+        fclose(out);
+        puts("Ошибка выделения памяти");
+        return memory_allocation_problem;
+    }
     fclose(in);
     char container[1024];
 
